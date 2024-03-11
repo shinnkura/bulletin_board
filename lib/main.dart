@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:intl/intl.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,7 +78,7 @@ class _BulletinBoardState extends State<BulletinBoard> {
     FirebaseFirestore.instance.collection('posts').add({
       'title': titleController.text,
       'content': contentController.text,
-      'timestamp': FieldValue.serverTimestamp(), // 投稿日時
+      'timestamp': FieldValue.serverTimestamp(),
     });
   }
 
@@ -98,23 +99,44 @@ class _BulletinBoardState extends State<BulletinBoard> {
               return Text('エラーが発生しました: ${snapshot.error}');
             }
 
-            switch (snapshot.connectionState) {
-              case ConnectionState.waiting:
-                return const LinearProgressIndicator();
-              default:
-                if (!snapshot.hasData) {
-                  return const Text('データがありません');
-                } else {
-                  return ListView(
-                    children: snapshot.data!.docs.map((document) {
-                      return ListTile(
-                        title: Text(document['title']),
-                        subtitle: Text(document['content']),
-                      );
-                    }).toList(),
-                  );
-                }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const LinearProgressIndicator();
             }
+
+            if (!snapshot.hasData) {
+              return const Text('データがありません');
+            }
+
+            return ListView(
+              children: snapshot.data!.docs.map((document) {
+                DateTime timestamp =
+                    (document['timestamp'] as Timestamp).toDate();
+                String formattedDate =
+                    DateFormat('yyyy/MM/dd HH:mm').format(timestamp);
+
+                return Card(
+                  margin: const EdgeInsets.all(10),
+                  child: ListTile(
+                    title: Text(
+                      document['title'],
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(document['content']),
+                        const SizedBox(height: 10),
+                        Text(
+                          formattedDate,
+                          style:
+                              TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
           },
         ),
       ),
