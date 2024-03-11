@@ -1,144 +1,128 @@
-import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_database/ui/firebase_animated_list.dart';
-import 'package:firebase_setup/model/board.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() => runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'College Board',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.lightGreen,
-      ),
-      home: const MyHomePage(),
+    return const MaterialApp(
+      title: '掲示板アプリ',
+      home: BulletinBoard(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+class BulletinBoard extends StatefulWidget {
+  const BulletinBoard({super.key});
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _BulletinBoardState createState() => _BulletinBoardState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  List<Board> boardMessages = List();
-  Board board;
-  final FirebaseDatabase database = FirebaseDatabase.instance;
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-  DatabaseReference databaseReference;
+class _BulletinBoardState extends State<BulletinBoard> {
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController contentController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
+  void _showFormDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('新しい投稿'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'タイトル'),
+              ),
+              TextField(
+                controller: contentController,
+                decoration: const InputDecoration(labelText: '内容'),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('キャンセル'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('追加'),
+              onPressed: () {
+                _addPostToFirestore();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-    board = Board("", "");
-    databaseReference = database.reference().child("college_board");
-    databaseReference.onChildAdded.listen(_onEntryAdded);
-    databaseReference.onChildChanged.listen(_onEntryChanged);
+  void _addPostToFirestore() {
+    FirebaseFirestore.instance.collection('posts').add({
+      'title': titleController.text,
+      'content': contentController.text,
+      'timestamp': FieldValue.serverTimestamp(), // 投稿日時
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("College Board"),
+        title: const Text('掲示板アプリ'),
       ),
-      body: Column(
-        children: <Widget>[
-          Flexible(
-            flex: 0,
-            child: Center(
-              child: Form(
-                key: formKey,
-                child: Flex(
-                  direction: Axis.vertical,
-                  children: <Widget>[
-                    ListTile(
-                      leading: const Icon(Icons.subject),
-                      title: TextFormField(
-                          initialValue: "",
-                          onSaved: (val) => board.subject = val,
-                          validator: (val) => val == "" ? val : null,
-                          hintText: 'Text field view'),
-                    ),
+      body: Center(
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('posts')
+              .orderBy('timestamp', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Text('エラーが発生しました: ${snapshot.error}');
+            }
 
-                    ListTile(
-                      leading: const Icon(Icons.message),
-                      title: TextFormField(
-                        initialValue: "",
-                        onSaved: (val) => board.body = val,
-                        validator: (val) => val == "" ? val : null,
-                      ),
-                    ),
-
-                    //Send or Post button
-                    FlatButton(
-                      child: const Text("Post"),
-                      color: Colors.blueAccent,
-                      onPressed: () {
-                        handleSubmit();
-                      },
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Flexible(
-            child: FirebaseAnimatedList(
-              query: databaseReference,
-              itemBuilder: (_, DataSnapshot snapshot,
-                  Animation<double> animation, int index) {
-                return Card(
-                  child: ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Colors.blue,
-                    ),
-                    title: Text(boardMessages[index].subject),
-                    subtitle: Text(boardMessages[index].body),
-                  ),
-                );
-              },
-            ),
-          )
-        ],
+            switch (snapshot.connectionState) {
+              case ConnectionState.waiting:
+                return const LinearProgressIndicator();
+              default:
+                if (!snapshot.hasData) {
+                  return const Text('データがありません');
+                } else {
+                  return ListView(
+                    children: snapshot.data!.docs.map((document) {
+                      return ListTile(
+                        title: Text(document['title']),
+                        subtitle: Text(document['content']),
+                      );
+                    }).toList(),
+                  );
+                }
+            }
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showFormDialog,
+        tooltip: '投稿',
+        child: const Icon(Icons.add),
       ),
     );
-  }
-
-  void _onEntryAdded(Event event) {
-    setState(() {
-      boardMessages.add(Board.fromSnapshot(event.snapshot));
-    });
-  }
-
-  void handleSubmit() {
-    final FormState form = formKey.currentState;
-    if (form.validate()) {
-      form.save();
-      form.reset();
-      //save form data to the database
-      databaseReference.push().set(board.toJson());
-    }
-  }
-
-  void _onEntryChanged(Event event) {
-    var oldEntry = boardMessages.singleWhere((entry) {
-      return entry.key == event.snapshot.key;
-    });
-
-    setState(() {
-      boardMessages[boardMessages.indexOf(oldEntry)] =
-          Board.fromSnapshot(event.snapshot);
-    });
   }
 }

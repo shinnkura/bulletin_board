@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "512979344824",
+    "project_id": "bulletin-board-d6754",
+    "storage_bucket": "bulletin-board-d6754.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:512979344824:android:b08dd522be2a62bcd8034d",
+        "android_client_info": {
+          "package_name": "com.example.bulletin_board"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYq9_AnRhgqPt6_uU8d30p3S0aVVTbeG4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
