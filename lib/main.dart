@@ -125,69 +125,72 @@ class _BulletinBoardState extends State<BulletinBoard> {
         title: const Text('コルクボード掲示板'),
         backgroundColor: Colors.brown,
       ),
-      body: SingleChildScrollView(
-        child: Container(
-          padding: const EdgeInsets.all(20.0),
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/corkboard_background.jpg'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.all(16.0),
-              margin: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: Colors.yellow[100]?.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(4, 4),
-                  ),
-                ],
+      body: Center(
+        // このCenterウィジェットが全体を中央に配置します
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(20.0),
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/corkboard_background.jpg'),
+                fit: BoxFit.cover,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    _title,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineMedium
-                        ?.copyWith(color: Colors.brown),
-                  ),
-                  const SizedBox(height: 20.0),
-                  Text(
-                    _content,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.black,
-                          height: 1.5,
+            ),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(16.0),
+                margin: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: Colors.yellow[100]?.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(4, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      _title,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineMedium
+                          ?.copyWith(color: Colors.brown),
+                    ),
+                    const SizedBox(height: 20.0),
+                    Text(
+                      _content,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.black,
+                            height: 1.5,
+                          ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        Text(
+                          '最終編集: $_lastEdited',
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 12,
+                          ),
                         ),
-                  ),
-                  const SizedBox(height: 20.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: <Widget>[
-                      Text(
-                        '最終編集: $_lastEdited',
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontSize: 12,
+                        TextButton(
+                          onPressed: _showEditDialog,
+                          child: const Text('編集',
+                              style: TextStyle(color: Colors.brown)),
                         ),
-                      ),
-                      TextButton(
-                        onPressed: _showEditDialog,
-                        child: const Text('編集',
-                            style: TextStyle(color: Colors.brown)),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
