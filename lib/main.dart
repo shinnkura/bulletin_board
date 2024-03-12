@@ -47,6 +47,7 @@ class _BulletinBoardState extends State<BulletinBoard> {
         tooltip: '投稿',
         child: const Icon(Icons.add),
       ),
+      backgroundColor: Colors.grey[400],
     );
   }
 
@@ -83,7 +84,9 @@ class _BulletinBoardState extends State<BulletinBoard> {
   }
 
   Widget _buildListItem(DocumentSnapshot doc) {
-    DateTime timestamp = (doc['timestamp'] as Timestamp).toDate();
+    // timestamp が null でないか確認し、null の場合は現在時刻を使用
+    DateTime timestamp =
+        (doc['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
     String formattedDate = DateFormat('yyyy/MM/dd HH:mm').format(timestamp);
 
     return Card(
@@ -109,6 +112,10 @@ class _BulletinBoardState extends State<BulletinBoard> {
   }
 
   void _showFormDialog() {
+    // テキストフィールドの内容をクリア
+    titleController.clear();
+    contentController.clear();
+
     showDialog(
       context: context,
       builder: (context) {
@@ -149,11 +156,13 @@ class _BulletinBoardState extends State<BulletinBoard> {
     );
   }
 
-  void _addPostToFirestore() {
-    FirebaseFirestore.instance.collection('posts').add({
+  void _addPostToFirestore() async {
+    await FirebaseFirestore.instance.collection('posts').add({
       'title': titleController.text,
       'content': contentController.text,
       'timestamp': FieldValue.serverTimestamp(),
     });
+    // データが追加された後にUIを更新するために状態を設定
+    setState(() {});
   }
 }
