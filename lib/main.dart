@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:intl/intl.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,9 +16,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: '掲示板アプリ',
-      home: BulletinBoard(),
+    return MaterialApp(
+      title: 'Flutter掲示板アプリ',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: const BulletinBoard(),
     );
   }
 }
@@ -32,183 +34,143 @@ class BulletinBoard extends StatefulWidget {
 }
 
 class _BulletinBoardState extends State<BulletinBoard> {
-  final TextEditingController titleController = TextEditingController();
-  final TextEditingController contentController = TextEditingController();
+  String _title = '';
+  String _content = '';
+
+  void _updateBoard(String title, String content) async {
+    final collection = FirebaseFirestore.instance.collection('board');
+    await collection.doc('post').set({
+      'title': title,
+      'content': content,
+    });
+    setState(() {
+      _title = title;
+      _content = content;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final doc = FirebaseFirestore.instance.collection('board').doc('post');
+    doc.get().then((snapshot) {
+      if (snapshot.exists) {
+        setState(() {
+          _title = snapshot.data()!['title'];
+          _content = snapshot.data()!['content'];
+        });
+      }
+    });
+  }
+
+  void _showEditDialog() {
+    final TextEditingController titleController =
+        TextEditingController(text: _title);
+    final TextEditingController contentController =
+        TextEditingController(text: _content);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('編集'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'タイトル'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: contentController,
+                  decoration: const InputDecoration(labelText: '本文'),
+                  maxLines: null,
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('キャンセル'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('保存'),
+              onPressed: () {
+                _updateBoard(titleController.text, contentController.text);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('掲示板アプリ'),
+        title: const Text('コルクボード掲示板'),
+        backgroundColor: Colors.brown,
       ),
-      body: _buildBody(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showFormDialog,
-        tooltip: '投稿',
-        child: const Icon(Icons.add),
-      ),
-      backgroundColor: Colors.grey[400],
-    );
-  }
-
-  Widget _buildBody() {
-    return Center(
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('posts')
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Text('エラーが発生しました: ${snapshot.error}');
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LinearProgressIndicator();
-          }
-
-          if (!snapshot.hasData) {
-            return const Text('データがありません');
-          }
-
-          return _buildList(snapshot.data!.docs);
-        },
-      ),
-    );
-  }
-
-  Widget _buildList(List<DocumentSnapshot> docs) {
-    return ListView(
-      children: docs.map(_buildListItem).toList(),
-    );
-  }
-
-  Widget _buildListItem(DocumentSnapshot doc) {
-    DateTime timestamp =
-        (doc['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
-    String formattedDate = DateFormat('yyyy/MM/dd HH:mm').format(timestamp);
-
-    return Card(
-      margin: const EdgeInsets.all(10),
-      child: ListTile(
-        title: Text(
-          doc['title'],
-          style: const TextStyle(fontWeight: FontWeight.bold),
+      body: Container(
+        padding: const EdgeInsets.all(20.0), // コンテナ全体のパディングを追加
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/corkboard_background.jpg'),
+            fit: BoxFit.cover,
+          ),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(doc['content']),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  formattedDate,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-                TextButton(
-                  onPressed: () => _showEditDialog(doc),
-                  child: const Text('編集'),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(16.0),
+            margin: const EdgeInsets.all(8.0), // コンテンツのマージンを追加
+            decoration: BoxDecoration(
+              color: Colors.yellow[100]?.withOpacity(0.9), // 背景色の透明度を調整
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(4, 4),
                 ),
               ],
             ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  _title,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(color: Colors.brown),
+                ),
+                const SizedBox(height: 10.0),
+                Text(
+                  _content,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.black),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: _showEditDialog,
+                    color: Colors.brown,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
-  }
-
-  void _showFormDialog() {
-    // テキストフィールドの内容をクリア
-    titleController.clear();
-    contentController.clear();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('新しい投稿'),
-          content: _buildDialogForm(),
-          actions: <Widget>[
-            TextButton(
-              onPressed: Navigator.of(context).pop,
-              child: const Text('キャンセル'),
-            ),
-            TextButton(
-              child: const Text('追加'),
-              onPressed: () {
-                _addPostToFirestore();
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildDialogForm() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        TextField(
-          controller: titleController,
-          decoration: const InputDecoration(labelText: 'タイトル'),
-        ),
-        TextField(
-          controller: contentController,
-          decoration: const InputDecoration(labelText: '内容'),
-        ),
-      ],
-    );
-  }
-
-  void _addPostToFirestore() async {
-    await FirebaseFirestore.instance.collection('posts').add({
-      'title': titleController.text,
-      'content': contentController.text,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-    // データが追加された後にUIを更新するために状態を設定
-    setState(() {});
-  }
-
-  void _showEditDialog(DocumentSnapshot doc) {
-    // 現在の投稿内容でテキストフィールドを初期化
-    titleController.text = doc['title'];
-    contentController.text = doc['content'];
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('投稿を編集'),
-          content: _buildDialogForm(),
-          actions: <Widget>[
-            TextButton(
-              onPressed: Navigator.of(context).pop,
-              child: const Text('キャンセル'),
-            ),
-            TextButton(
-              child: const Text('更新'),
-              onPressed: () {
-                _updatePostToFirestore(doc.id);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _updatePostToFirestore(String docId) async {
-    await FirebaseFirestore.instance.collection('posts').doc(docId).update({
-      'title': titleController.text,
-      'content': contentController.text,
-      'timestamp': FieldValue.serverTimestamp(), // 更新日時を記録
-    });
-    setState(() {});
   }
 }
