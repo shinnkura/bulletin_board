@@ -84,7 +84,6 @@ class _BulletinBoardState extends State<BulletinBoard> {
   }
 
   Widget _buildListItem(DocumentSnapshot doc) {
-    // timestamp が null でないか確認し、null の場合は現在時刻を使用
     DateTime timestamp =
         (doc['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
     String formattedDate = DateFormat('yyyy/MM/dd HH:mm').format(timestamp);
@@ -101,9 +100,18 @@ class _BulletinBoardState extends State<BulletinBoard> {
           children: [
             Text(doc['content']),
             const SizedBox(height: 10),
-            Text(
-              formattedDate,
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  formattedDate,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+                TextButton(
+                  onPressed: () => _showEditDialog(doc),
+                  child: const Text('編集'),
+                ),
+              ],
             ),
           ],
         ),
@@ -163,6 +171,44 @@ class _BulletinBoardState extends State<BulletinBoard> {
       'timestamp': FieldValue.serverTimestamp(),
     });
     // データが追加された後にUIを更新するために状態を設定
+    setState(() {});
+  }
+
+  void _showEditDialog(DocumentSnapshot doc) {
+    // 現在の投稿内容でテキストフィールドを初期化
+    titleController.text = doc['title'];
+    contentController.text = doc['content'];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('投稿を編集'),
+          content: _buildDialogForm(),
+          actions: <Widget>[
+            TextButton(
+              onPressed: Navigator.of(context).pop,
+              child: const Text('キャンセル'),
+            ),
+            TextButton(
+              child: const Text('更新'),
+              onPressed: () {
+                _updatePostToFirestore(doc.id);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _updatePostToFirestore(String docId) async {
+    await FirebaseFirestore.instance.collection('posts').doc(docId).update({
+      'title': titleController.text,
+      'content': contentController.text,
+      'timestamp': FieldValue.serverTimestamp(), // 更新日時を記録
+    });
     setState(() {});
   }
 }
