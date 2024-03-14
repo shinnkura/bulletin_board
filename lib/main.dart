@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter掲示板アプリ',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.orange, // テーマカラーをオレンジに設定
       ),
       home: const BulletinBoard(),
     );
@@ -37,23 +37,22 @@ class BulletinBoard extends StatefulWidget {
 class _BulletinBoardState extends State<BulletinBoard> {
   String _title = '';
   String _content = '';
-  String _lastEdited = ''; // 編集された最後の日付を格納する変数
+  String _lastEdited = '';
 
   void _updateBoard(String title, String content) async {
     final DateTime now = DateTime.now();
-    final String formattedDate =
-        DateFormat('yyyy/MM/dd HH:mm').format(now); // 日付をフォーマット
+    final String formattedDate = DateFormat('yyyy/MM/dd HH:mm').format(now);
 
     final collection = FirebaseFirestore.instance.collection('board');
     await collection.doc('post').set({
       'title': title,
       'content': content,
-      'lastEdited': formattedDate, // Firestoreに日付を保存
+      'lastEdited': formattedDate,
     });
     setState(() {
       _title = title;
       _content = content;
-      _lastEdited = formattedDate; // 状態を更新
+      _lastEdited = formattedDate;
     });
   }
 
@@ -66,7 +65,7 @@ class _BulletinBoardState extends State<BulletinBoard> {
         setState(() {
           _title = snapshot.data()!['title'];
           _content = snapshot.data()!['content'];
-          _lastEdited = snapshot.data()!['lastEdited'] ?? ''; // 日付がない場合は空文字を設定
+          _lastEdited = snapshot.data()!['lastEdited'] ?? '';
         });
       }
     });
@@ -90,12 +89,15 @@ class _BulletinBoardState extends State<BulletinBoard> {
                 TextField(
                   controller: titleController,
                   decoration: const InputDecoration(labelText: 'タイトル'),
+                  maxLines: 1,
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: contentController,
                   decoration: const InputDecoration(labelText: '本文'),
+                  keyboardType: TextInputType.multiline,
                   maxLines: null,
+                  minLines: 3,
                 ),
               ],
             ),
@@ -123,29 +125,22 @@ class _BulletinBoardState extends State<BulletinBoard> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('コルクボード掲示板'),
-        backgroundColor: Colors.brown,
+        backgroundColor: Colors.orange[800], // アプリバーの色を濃いオレンジに設定
       ),
       body: Center(
-        // このCenterウィジェットが全体を中央に配置します
         child: SingleChildScrollView(
           child: Container(
             padding: const EdgeInsets.all(20.0),
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/corkboard_background.jpg'),
-                fit: BoxFit.cover,
-              ),
-            ),
             child: Center(
               child: Container(
                 padding: const EdgeInsets.all(16.0),
                 margin: const EdgeInsets.all(8.0),
                 decoration: BoxDecoration(
-                  color: Colors.yellow[100]?.withOpacity(0.9),
+                  color: Colors.orange[50], // コンテナの背景色を薄いオレンジに設定
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.orange.withOpacity(0.5), // 影の色をオレンジに設定
                       blurRadius: 8,
                       offset: const Offset(4, 4),
                     ),
@@ -161,7 +156,7 @@ class _BulletinBoardState extends State<BulletinBoard> {
                       style: Theme.of(context)
                           .textTheme
                           .headlineMedium
-                          ?.copyWith(color: Colors.brown),
+                          ?.copyWith(color: Colors.orange[800]), // タイトルのスタイルを変更
                     ),
                     const SizedBox(height: 20.0),
                     Text(
@@ -184,8 +179,10 @@ class _BulletinBoardState extends State<BulletinBoard> {
                         ),
                         TextButton(
                           onPressed: _showEditDialog,
-                          child: const Text('編集',
-                              style: TextStyle(color: Colors.brown)),
+                          child: Text(
+                            '編集',
+                            style: TextStyle(color: Colors.orange[800]),
+                          ), // ボタンのスタイルを変更
                         ),
                       ],
                     ),
